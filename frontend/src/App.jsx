@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 const metrics = [
   { label: "Carbon emissions", value: "18.4 tCO2e", change: "-8.2% vs last month" },
   { label: "Energy usage", value: "42,900 kWh", change: "+3.5% vs last month" },
@@ -171,84 +172,43 @@ function App() {
                   </div>
                 </div>
 
-                <div style={{ display: "grid", gap: 14 }}>
-                  {metrics.map((metric) => (
-                    <div
-                      key={metric.label}
-                      style={{
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "space-between",
-                        gap: 12,
-                        padding: "14px 16px",
-                        borderRadius: 18,
-                        background: "rgba(15, 23, 42, 0.72)",
-                        border: "1px solid rgba(148, 163, 184, 0.14)",
-                      }}
-                    >
-                      <div>
-                        <div style={{ color: "#cbd5e1", fontSize: 14 }}>{metric.label}</div>
-                        <div style={{ fontSize: 24, fontWeight: 800, marginTop: 4 }}>{metric.value}</div>
-                      </div>
-                      <div style={{ color: "#93c5fd", fontWeight: 600, fontSize: 13, textAlign: "right" }}>
-                        {metric.change}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </div>
-          </div>
-        </section>
+          import { Navigate, Route, Routes } from 'react-router-dom';
+import { AuthProvider } from './context/AuthContext';
+import ProtectedRoute from './components/ProtectedRoute';
+import Login from './pages/Login';
+import Dashboard from './pages/Dashboard';
+import './App.css';
 
-        <section style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: 16 }}>
-          {modules.map((module) => (
-            <article
-              key={module.title}
-              style={{
-                ...card,
-                padding: 20,
-                borderTop: `4px solid ${module.accent}`,
-              }}
-            >
-              <div style={{ fontSize: 18, fontWeight: 800, marginBottom: 10 }}>{module.title}</div>
-              <p style={{ margin: 0, color: "#cbd5e1", lineHeight: 1.65 }}>{module.description}</p>
-            </article>
-          ))}
-        </section>
+function App() {
+  return (
+    <AuthProvider>
+      <Routes>
+        <Route path="/login" element={<Login mode="login" />} />
+        <Route path="/register" element={<Login mode="register" />} />
+        <Route element={<ProtectedRoute />}>
+          <Route path="/dashboard" element={<Dashboard />} />
+        </Route>
+        <Route path="*" element={<Navigate to="/login" replace />} />
+      </Routes>
+    </AuthProvider>
+  );
+}
 
-        <section style={{ ...card, padding: 24 }}>
-          <h2 style={{ margin: "0 0 14px", fontSize: 22 }}>What this module delivers</h2>
-          <div style={{ display: "grid", gap: 12 }}>
-            {highlights.map((item) => (
-              <div
-                key={item}
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: 12,
-                  padding: "12px 14px",
-                  borderRadius: 16,
-                  background: "rgba(15, 23, 42, 0.58)",
-                  border: "1px solid rgba(148, 163, 184, 0.12)",
-                }}
-              >
-                <span
-                  style={{
-                    width: 12,
-                    height: 12,
-                    borderRadius: 999,
-                    background: "linear-gradient(135deg, #60a5fa, #34d399)",
-                    flexShrink: 0,
-                  }}
-                />
-                <span style={{ color: "#e2e8f0", lineHeight: 1.5 }}>{item}</span>
-              </div>
-            ))}
-          </div>
-        </section>
-      </div>
-    </main>
+export default App;
+
+function App() {
+  return (
+    <AuthProvider>
+      <Routes>
+        <Route path="/login" element={<Login mode="login" />} />
+        <Route path="/register" element={<Login mode="register" />} />
+        <Route element={<ProtectedRoute />}>
+          <Route path="/dashboard" element={<Dashboard />} />
+        </Route>
+        <Route path="*" element={<Navigate to="/login" replace />} />
+      </Routes>
+    </AuthProvider>
+>>>>>>> d64d38a (frontend added for authentication module)
   );
 }
 
