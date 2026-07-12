@@ -91,10 +91,11 @@ model User {
 model Policy {
   id            Int              @id @default(autoincrement())
   title         String
+  description   String
+  category      String
   version       String
-  content       String
-  status        PolicyStatus     @default(DRAFT)
   effectiveDate DateTime?
+  status        PolicyStatus     @default(DRAFT)
   createdById   Int
   createdBy     User             @relation(fields: [createdById], references: [id])
   createdAt     DateTime         @default(now())

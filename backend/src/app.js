@@ -3,6 +3,7 @@ import cors from "cors";
 import dotenv from "dotenv";
 import morgan from "morgan";
 import governanceRoutes from "./routes/governanceRoutes.js";
+import policyRoutes from "./routes/policyRoutes.js";
 import environmentRoutes from "./routes/environmentRoutes.js";
 import { errorHandler, notFoundHandler } from "./utils/errorHandler.js";
 
@@ -22,6 +23,7 @@ app.get("/health", (req, res) => {
 });
 
 app.use("/api/governance", governanceRoutes);
+app.use("/api/governance/policies", policyRoutes);
 app.use("/api/environment", environmentRoutes);
 
 app.use(notFoundHandler);

@@ -9,13 +9,16 @@ export const notFoundHandler = (req, res, next) => {
 export const errorHandler = (err, req, res, next) => {
   const statusCode = err.statusCode || 500;
   const message = err.message || "Internal Server Error";
-  const details = err.details || null;
+  const errors = Array.isArray(err.details) ? err.details : err.details ? [err.details] : [];
 
   if (err instanceof ZodError) {
     return res.status(400).json({
       success: false,
       message: "Validation failed",
-      errors: err.flatten(),
+      errors: err.issues?.map((issue) => ({
+        field: issue.path.join("."),
+        message: issue.message,
+      })) || [],
     });
   }
 
@@ -24,7 +27,7 @@ export const errorHandler = (err, req, res, next) => {
       return res.status(409).json({
         success: false,
         message: "A record with the same unique value already exists",
-        details: err.meta,
+        errors: [{ field: err.meta?.target, message: err.message }],
       });
     }
 
@@ -32,7 +35,7 @@ export const errorHandler = (err, req, res, next) => {
       return res.status(400).json({
         success: false,
         message: "Related record not found",
-        details: err.meta,
+        errors: [{ field: err.meta?.field_name, message: err.message }],
       });
     }
 
@@ -40,6 +43,7 @@ export const errorHandler = (err, req, res, next) => {
       return res.status(404).json({
         success: false,
         message: "Record not found",
+        errors: [],
       });
     }
   }
@@ -47,6 +51,6 @@ export const errorHandler = (err, req, res, next) => {
   return res.status(statusCode).json({
     success: false,
     message,
-    details,
+    errors,
   });
 };
