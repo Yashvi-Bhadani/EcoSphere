@@ -68,7 +68,20 @@ export const createUser = async (req, res) => {
       });
     }
 
-    const result = await createUserService(parsedBody.data);
+    const requestedRole = parsedBody.data.role || "EMPLOYEE";
+    const isAdminRequest = req.user?.role === "ADMIN";
+
+    if (requestedRole !== "EMPLOYEE" && !isAdminRequest) {
+      return res.status(403).json({
+        success: false,
+        message: "Only administrators can create admin or manager accounts"
+      });
+    }
+
+    const result = await createUserService({
+      ...parsedBody.data,
+      role: requestedRole
+    });
 
     return res.status(201).json({
       success: true,
