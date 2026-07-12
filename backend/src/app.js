@@ -3,6 +3,7 @@ import cors from "cors";
 import dotenv from "dotenv";
 import morgan from "morgan";
 import environmentRoutes from "./routes/environmentRoutes.js";
+import authRoutes from "./routes/authRoutes.js";
 import { errorHandler, notFoundHandler } from "./utils/errorHandler.js";
 
 dotenv.config();
@@ -14,12 +15,13 @@ app.use(express.json());
 app.use(morgan("dev"));
 
 app.get("/health", (req, res) => {
-	res.status(200).json({
-		success: true,
-		message: "EcoSphere API is running",
-	});
+  res.status(200).json({
+    success: true,
+    message: "EcoSphere API is running"
+  });
 });
 
+app.use("/api/v1/auth", authRoutes);
 app.use("/api/environment", environmentRoutes);
 
 app.use(notFoundHandler);
