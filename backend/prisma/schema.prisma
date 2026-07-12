@@ -1,5 +1,3 @@
-// Prisma Schema
-
 generator client {
   provider = "prisma-client-js"
 }
@@ -14,6 +12,7 @@ enum Role {
   EMPLOYEE
 }
 
+<<<<<<< HEAD
 enum PolicyStatus {
   DRAFT
   ACTIVE
@@ -113,4 +112,202 @@ model ComplianceIssue {
   resolvedAt    DateTime?
   createdAt     DateTime          @default(now())
   updatedAt     DateTime          @updatedAt
+=======
+model Department {
+  id          Int      @id @default(autoincrement())
+  name        String   @unique
+  code        String   @unique
+  description String?
+  isActive    Boolean  @default(true)
+
+  users              User[]
+  emissionCategories EmissionCategory[]
+  emissionFactors    EmissionFactor[]
+  carbonEmissions    CarbonEmission[]
+  environmentalGoals EnvironmentalGoal[]
+  wasteRecords       WasteRecord[]
+  energyConsumptions EnergyConsumption[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model User {
+  id           Int      @id @default(autoincrement())
+  name         String
+  email        String   @unique
+  password     String
+  role         Role     @default(EMPLOYEE)
+  isActive     Boolean  @default(true)
+  departmentId Int?
+
+  department Department? @relation(fields: [departmentId], references: [id], onDelete: SetNull)
+
+  createdEmissionCategories EmissionCategory[]
+  createdEmissionFactors    EmissionFactor[]
+  createdCarbonEmissions    CarbonEmission[]
+  createdEnvironmentalGoals EnvironmentalGoal[]
+  createdWasteRecords       WasteRecord[]
+  createdEnergyConsumptions EnergyConsumption[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model EmissionCategory {
+  id          Int      @id @default(autoincrement())
+  name        String
+  code        String   @unique
+  description String?
+  isActive    Boolean  @default(true)
+
+  departmentId Int
+  createdById  Int?
+
+  department      Department       @relation(fields: [departmentId], references: [id], onDelete: Restrict)
+  createdBy       User?            @relation(fields: [createdById], references: [id], onDelete: SetNull)
+  emissionFactors EmissionFactor[]
+  carbonEmissions CarbonEmission[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([departmentId])
+  @@index([createdById])
+}
+
+model EmissionFactor {
+  id                 Int      @id @default(autoincrement())
+  name               String
+  code               String   @unique
+  description        String?
+  activityType       String
+  unit               String
+  factorValue        Decimal  @db.Decimal(18, 6)
+  factorUnit         String
+  source             String?
+  isActive           Boolean  @default(true)
+
+  emissionCategoryId  Int
+  departmentId        Int
+  createdById         Int?
+
+  emissionCategory EmissionCategory @relation(fields: [emissionCategoryId], references: [id], onDelete: Restrict)
+  department       Department       @relation(fields: [departmentId], references: [id], onDelete: Restrict)
+  createdBy        User?            @relation(fields: [createdById], references: [id], onDelete: SetNull)
+  carbonEmissions  CarbonEmission[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([emissionCategoryId])
+  @@index([departmentId])
+  @@index([createdById])
+}
+
+model CarbonEmission {
+  id                 Int      @id @default(autoincrement())
+  title              String
+  activityName       String
+  activityValue      Decimal  @db.Decimal(18, 6)
+  activityUnit       String
+  emissionAmount     Decimal  @db.Decimal(18, 6)
+  scope              String?
+  emissionDate       DateTime
+  notes              String?
+  source             String?
+
+  emissionCategoryId  Int
+  emissionFactorId    Int?
+  departmentId        Int
+  createdById         Int?
+
+  emissionCategory EmissionCategory @relation(fields: [emissionCategoryId], references: [id], onDelete: Restrict)
+  emissionFactor   EmissionFactor?  @relation(fields: [emissionFactorId], references: [id], onDelete: SetNull)
+  department       Department       @relation(fields: [departmentId], references: [id], onDelete: Restrict)
+  createdBy        User?            @relation(fields: [createdById], references: [id], onDelete: SetNull)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([emissionCategoryId])
+  @@index([emissionFactorId])
+  @@index([departmentId])
+  @@index([createdById])
+}
+
+model EnvironmentalGoal {
+  id            Int      @id @default(autoincrement())
+  title         String
+  description   String?
+  goalType      String?
+  targetValue   Decimal  @db.Decimal(18, 6)
+  currentValue  Decimal  @default(0) @db.Decimal(18, 6)
+  baselineValue Decimal? @db.Decimal(18, 6)
+  unit          String
+  status        String   @default("ACTIVE")
+  startDate     DateTime?
+  targetDate    DateTime
+  achievedAt    DateTime?
+
+  departmentId Int
+  createdById  Int?
+
+  department Department @relation(fields: [departmentId], references: [id], onDelete: Restrict)
+  createdBy  User?      @relation(fields: [createdById], references: [id], onDelete: SetNull)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([departmentId])
+  @@index([createdById])
+}
+
+model WasteRecord {
+  id             Int      @id @default(autoincrement())
+  wasteType      String
+  quantity       Decimal  @db.Decimal(18, 6)
+  unit           String
+  disposalMethod String
+  hazardous      Boolean  @default(false)
+  recycled       Boolean  @default(false)
+  recordDate     DateTime @default(now())
+  notes          String?
+
+  departmentId Int
+  createdById  Int?
+
+  department Department @relation(fields: [departmentId], references: [id], onDelete: Restrict)
+  createdBy  User?      @relation(fields: [createdById], references: [id], onDelete: SetNull)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([departmentId])
+  @@index([createdById])
+}
+
+model EnergyConsumption {
+  id             Int      @id @default(autoincrement())
+  sourceType     String
+  consumption    Decimal  @db.Decimal(18, 6)
+  unit           String
+  periodStart    DateTime
+  periodEnd      DateTime
+  cost           Decimal? @db.Decimal(18, 2)
+  carbonEmission Decimal? @db.Decimal(18, 6)
+  notes          String?
+
+  departmentId Int
+  createdById  Int?
+
+  department Department @relation(fields: [departmentId], references: [id], onDelete: Restrict)
+  createdBy  User?      @relation(fields: [createdById], references: [id], onDelete: SetNull)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([departmentId])
+  @@index([createdById])
+>>>>>>> main
 }
