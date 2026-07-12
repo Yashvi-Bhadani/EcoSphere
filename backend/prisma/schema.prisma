@@ -4,23 +4,69 @@ generator client {
 
 datasource db {
   provider = "postgresql"
-  url      = env("DATABASE_URL")
+  // Connection URL moved to prisma.config.ts for Prisma v7+
 }
 
 enum Role {
   ADMIN
-  MANAGER
   EMPLOYEE
 }
 
-model Department {
-  id          Int      @id @default(autoincrement())
-  name        String   @unique
-  code        String   @unique
-  description String?
-  isActive    Boolean  @default(true)
+enum DepartmentType {
+  HR
+  IT
+  FINANCE
+  OPERATIONS
+  MARKETING
+  SALES
+  ENVIRONMENT
+  MANAGEMENT
+}
 
-  users              User[]
+model User {
+  id            String   @id @default(cuid())
+  firstName     String
+  lastName      String
+  email         String   @unique
+  password      String
+  role          Role     @default(EMPLOYEE)
+
+  departmentId  String?
+  department    Department? @relation(fields: [departmentId], references: [id])
+
+  isActive      Boolean  @default(true)
+
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  // Governance
+  createdPolicies      Policy[]                 @relation("PolicyCreator")
+  acknowledgements     PolicyAcknowledgement[]
+  auditsConducted      Audit[]                  @relation("AuditCreator")
+  reportedIssues       ComplianceIssue[]        @relation("IssueReporter")
+  resolvedIssues       ComplianceIssue[]        @relation("IssueResolver")
+
+  // Environment
+  emissions            CarbonEmission[] @relation("CarbonEmissionCreator")
+  energyConsumptions   EnergyConsumption[] @relation("EnergyConsumptionCreator")
+  wasteRecords         WasteRecord[] @relation("WasteRecordCreator")
+  environmentalGoals   EnvironmentalGoal[] @relation("EnvironmentalGoalCreator")
+  createdEmissionCategories EmissionCategory[] @relation("EmissionCategoryCreator")
+  createdEmissionFactors    EmissionFactor[]  @relation("EmissionFactorCreator")
+
+  // Social
+  volunteerActivities  VolunteerActivity[]
+  rewards              Reward[]
+
+  @@map("users")
+}
+
+model Department {
+  id          String          @id @default(cuid())
+  name        DepartmentType  @unique
+  description String?
+
+  users       User[]
   emissionCategories EmissionCategory[]
   emissionFactors    EmissionFactor[]
   carbonEmissions    CarbonEmission[]
@@ -28,185 +74,215 @@ model Department {
   wasteRecords       WasteRecord[]
   energyConsumptions EnergyConsumption[]
 
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-}
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 
-model User {
-  id           Int      @id @default(autoincrement())
-  name         String
-  email        String   @unique
-  password     String
-  role         Role     @default(EMPLOYEE)
-  isActive     Boolean  @default(true)
-  departmentId Int?
-
-  department Department? @relation(fields: [departmentId], references: [id], onDelete: SetNull)
-
-  createdEmissionCategories EmissionCategory[]
-  createdEmissionFactors    EmissionFactor[]
-  createdCarbonEmissions    CarbonEmission[]
-  createdEnvironmentalGoals EnvironmentalGoal[]
-  createdWasteRecords       WasteRecord[]
-  createdEnergyConsumptions EnergyConsumption[]
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  @@map("departments")
 }
 
 model EmissionCategory {
-  id          Int      @id @default(autoincrement())
+  id          String      @id @default(cuid())
   name        String
   code        String   @unique
   description String?
   isActive    Boolean  @default(true)
 
-  departmentId Int
-  createdById  Int?
+  departmentId String
+  department   Department @relation(fields: [departmentId], references: [id])
 
-  department      Department       @relation(fields: [departmentId], references: [id], onDelete: Restrict)
-  createdBy       User?            @relation(fields: [createdById], references: [id], onDelete: SetNull)
+  createdById String?
+  createdBy   User?     @relation("EmissionCategoryCreator", fields: [createdById], references: [id])
+
   emissionFactors EmissionFactor[]
   carbonEmissions CarbonEmission[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  @@index([departmentId])
-  @@index([createdById])
+  @@map("emission_categories")
 }
 
 model EmissionFactor {
-  id                 Int      @id @default(autoincrement())
-  name               String
-  code               String   @unique
-  description        String?
-  activityType       String
-  unit               String
-  factorValue        Decimal  @db.Decimal(18, 6)
-  factorUnit         String
-  source             String?
-  isActive           Boolean  @default(true)
+  id               String      @id @default(cuid())
+  name             String
+  code             String   @unique
+  description      String?
+  activityType     String
+  unit             String
+  factorValue      Float
+  factorUnit       String
+  source           String?
+  isActive         Boolean  @default(true)
 
-  emissionCategoryId  Int
-  departmentId        Int
-  createdById         Int?
+  emissionCategoryId String
+  emissionCategory   EmissionCategory @relation(fields: [emissionCategoryId], references: [id])
 
-  emissionCategory EmissionCategory @relation(fields: [emissionCategoryId], references: [id], onDelete: Restrict)
-  department       Department       @relation(fields: [departmentId], references: [id], onDelete: Restrict)
-  createdBy        User?            @relation(fields: [createdById], references: [id], onDelete: SetNull)
-  carbonEmissions  CarbonEmission[]
+  departmentId String
+  department   Department @relation(fields: [departmentId], references: [id])
+
+  createdById String?
+  createdBy   User? @relation("EmissionFactorCreator", fields: [createdById], references: [id])
+
+  carbonEmissions CarbonEmission[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  @@index([emissionCategoryId])
-  @@index([departmentId])
-  @@index([createdById])
+  @@map("emission_factors")
 }
 
 model CarbonEmission {
-  id                 Int      @id @default(autoincrement())
-  title              String
-  activityName       String
-  activityValue      Decimal  @db.Decimal(18, 6)
-  activityUnit       String
-  emissionAmount     Decimal  @db.Decimal(18, 6)
-  scope              String?
-  emissionDate       DateTime
-  notes              String?
-  source             String?
+  id               String      @id @default(cuid())
+  title            String
+  activityName     String
+  activityValue    Float
+  activityUnit     String
+  emissionAmount   Float
+  scope            String?
+  emissionDate     DateTime
+  notes            String?
+  source           String?
 
-  emissionCategoryId  Int
-  emissionFactorId    Int?
-  departmentId        Int
-  createdById         Int?
+  emissionCategoryId String
+  emissionCategory   EmissionCategory @relation(fields: [emissionCategoryId], references: [id])
 
-  emissionCategory EmissionCategory @relation(fields: [emissionCategoryId], references: [id], onDelete: Restrict)
-  emissionFactor   EmissionFactor?  @relation(fields: [emissionFactorId], references: [id], onDelete: SetNull)
-  department       Department       @relation(fields: [departmentId], references: [id], onDelete: Restrict)
-  createdBy        User?            @relation(fields: [createdById], references: [id], onDelete: SetNull)
+  emissionFactorId String?
+  emissionFactor   EmissionFactor? @relation(fields: [emissionFactorId], references: [id])
+
+  departmentId String
+  department   Department @relation(fields: [departmentId], references: [id])
+
+  createdById String?
+  createdBy   User? @relation("CarbonEmissionCreator", fields: [createdById], references: [id])
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  @@index([emissionCategoryId])
-  @@index([emissionFactorId])
-  @@index([departmentId])
-  @@index([createdById])
+  @@map("carbon_emissions")
 }
 
 model EnvironmentalGoal {
-  id            Int      @id @default(autoincrement())
-  title         String
-  description   String?
-  goalType      String?
-  targetValue   Decimal  @db.Decimal(18, 6)
-  currentValue  Decimal  @default(0) @db.Decimal(18, 6)
-  baselineValue Decimal? @db.Decimal(18, 6)
-  unit          String
-  status        String   @default("ACTIVE")
-  startDate     DateTime?
-  targetDate    DateTime
-  achievedAt    DateTime?
+  id           String      @id @default(cuid())
+  title        String
+  description  String?
+  goalType     String?
+  targetValue  Float
+  currentValue Float?   @default(0)
+  baselineValue Float?
+  unit         String
+  status       String   @default("ACTIVE")
+  startDate    DateTime?
+  targetDate   DateTime
+  achievedAt   DateTime?
 
-  departmentId Int
-  createdById  Int?
+  departmentId String
+  department   Department @relation(fields: [departmentId], references: [id])
 
-  department Department @relation(fields: [departmentId], references: [id], onDelete: Restrict)
-  createdBy  User?      @relation(fields: [createdById], references: [id], onDelete: SetNull)
+  createdById String?
+  createdBy   User? @relation("EnvironmentalGoalCreator", fields: [createdById], references: [id])
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  @@index([departmentId])
-  @@index([createdById])
+  @@map("environmental_goals")
 }
 
 model WasteRecord {
-  id             Int      @id @default(autoincrement())
-  wasteType      String
-  quantity       Decimal  @db.Decimal(18, 6)
-  unit           String
+  id           String      @id @default(cuid())
+  wasteType    String
+  quantity     Float
+  unit         String
   disposalMethod String
-  hazardous      Boolean  @default(false)
-  recycled       Boolean  @default(false)
-  recordDate     DateTime @default(now())
-  notes          String?
+  hazardous    Boolean  @default(false)
+  recycled     Boolean  @default(false)
+  recordDate   DateTime @default(now())
+  notes        String?
 
-  departmentId Int
-  createdById  Int?
+  departmentId String
+  department   Department @relation(fields: [departmentId], references: [id])
 
-  department Department @relation(fields: [departmentId], references: [id], onDelete: Restrict)
-  createdBy  User?      @relation(fields: [createdById], references: [id], onDelete: SetNull)
+  createdById String?
+  createdBy   User? @relation("WasteRecordCreator", fields: [createdById], references: [id])
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  @@index([departmentId])
-  @@index([createdById])
+  @@map("waste_records")
 }
 
 model EnergyConsumption {
-  id             Int      @id @default(autoincrement())
-  sourceType     String
-  consumption    Decimal  @db.Decimal(18, 6)
-  unit           String
-  periodStart    DateTime
-  periodEnd      DateTime
-  cost           Decimal? @db.Decimal(18, 2)
-  carbonEmission Decimal? @db.Decimal(18, 6)
-  notes          String?
+  id         String      @id @default(cuid())
+  sourceType String
+  consumption Float
+  unit       String
+  periodStart DateTime
+  periodEnd   DateTime
+  cost       Float?
+  carbonEmission Float?
+  notes      String?
 
-  departmentId Int
-  createdById  Int?
+  departmentId String
+  department   Department @relation(fields: [departmentId], references: [id])
 
-  department Department @relation(fields: [departmentId], references: [id], onDelete: Restrict)
-  createdBy  User?      @relation(fields: [createdById], references: [id], onDelete: SetNull)
+  createdById String?
+  createdBy   User? @relation("EnergyConsumptionCreator", fields: [createdById], references: [id])
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  @@index([departmentId])
-  @@index([createdById])
+  @@map("energy_consumptions")
 }
+
+model Policy {
+  id        String @id @default(cuid())
+  title     String?
+  creatorId String
+  creator   User   @relation("PolicyCreator", fields: [creatorId], references: [id])
+  acknowledgements PolicyAcknowledgement[]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model PolicyAcknowledgement {
+  id       String @id @default(cuid())
+  policyId String
+  policy   Policy @relation(fields: [policyId], references: [id])
+  userId   String
+  user     User   @relation(fields: [userId], references: [id])
+  createdAt DateTime @default(now())
+}
+
+model Audit {
+  id        String @id @default(cuid())
+  title     String?
+  creatorId String
+  creator   User @relation("AuditCreator", fields: [creatorId], references: [id])
+  createdAt DateTime @default(now())
+}
+
+model ComplianceIssue {
+  id         String @id @default(cuid())
+  title      String?
+  reporterId String
+  reporter   User @relation("IssueReporter", fields: [reporterId], references: [id])
+  resolverId String?
+  resolver   User? @relation("IssueResolver", fields: [resolverId], references: [id])
+  createdAt DateTime @default(now())
+}
+
+model VolunteerActivity {
+  id        String @id @default(cuid())
+  title     String?
+  createdById String?
+  createdBy User? @relation(fields: [createdById], references: [id])
+  createdAt DateTime @default(now())
+}
+
+model Reward {
+  id        String @id @default(cuid())
+  name      String?
+  userId    String?
+  user      User? @relation(fields: [userId], references: [id])
+  createdAt DateTime @default(now())
+}
+ 
