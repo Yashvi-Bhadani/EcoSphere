@@ -3,8 +3,8 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
+  provider     = "postgresql"
+  relationMode = "prisma"
 }
 
 enum Role {
@@ -23,4 +23,62 @@ model User {
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+}
+
+/// Represents a CSR category used to group related social activities.
+model Category {
+  id   Int     @id @default(autoincrement())
+  name String
+  type String
+  status Boolean @default(true)
+
+  csrActivities CSRActivity[]
+
+  @@map("categories")
+}
+
+/// Represents a corporate social responsibility activity.
+model CSRActivity {
+  id          Int      @id @default(autoincrement())
+  title       String
+  description String
+  date        DateTime
+  status      String   @default("ACTIVE")
+  categoryId  Int
+
+  category Category @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+
+  employeeParticipations EmployeeParticipation[]
+
+  @@map("csr_activities")
+}
+
+/// Represents an employee participation record for a CSR activity.
+model EmployeeParticipation {
+  id              Int      @id @default(autoincrement())
+  employeeId      Int
+  activityId      Int
+  proof           String?
+  approvalStatus  String   @default("PENDING")
+  pointsEarned    Int      @default(0)
+  completionDate  DateTime @default(now())
+
+  employee Employee @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  activity CSRActivity @relation(fields: [activityId], references: [id], onDelete: Cascade)
+
+  @@map("employee_participations")
+}
+
+/// Represents an employee that can participate in CSR activities.
+model Employee {
+  id            Int      @id @default(autoincrement())
+  name          String
+  email         String   @unique
+  departmentId  Int?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  participations EmployeeParticipation[]
+
+  @@map("employees")
 }
