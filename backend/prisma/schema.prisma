@@ -12,7 +12,6 @@ enum Role {
   EMPLOYEE
 }
 
-<<<<<<< HEAD
 enum PolicyStatus {
   DRAFT
   ACTIVE
@@ -43,76 +42,6 @@ enum ComplianceStatus {
   RESOLVED
 }
 
-model User {
-  id                    Int                     @id @default(autoincrement())
-  name                  String
-  email                 String                  @unique
-  password              String
-  role                  Role                    @default(EMPLOYEE)
-  isActive              Boolean                 @default(true)
-  createdAt             DateTime                @default(now())
-  updatedAt             DateTime                @updatedAt
-
-  policies              Policy[]
-  policyAcknowledgements PolicyAcknowledgement[]
-  audits                Audit[]
-  complianceIssues      ComplianceIssue[]
-}
-
-model Policy {
-  id              Int                     @id @default(autoincrement())
-  title           String
-  version         String
-  content         String
-  status          PolicyStatus            @default(DRAFT)
-  effectiveDate   DateTime?
-  createdById     Int
-  createdBy       User                    @relation(fields: [createdById], references: [id])
-  createdAt       DateTime                @default(now())
-  updatedAt       DateTime                @updatedAt
-
-  acknowledgements PolicyAcknowledgement[]
-}
-
-model PolicyAcknowledgement {
-  id            Int      @id @default(autoincrement())
-  policyId      Int
-  userId        Int
-  acknowledgedAt DateTime @default(now())
-
-  policy        Policy   @relation(fields: [policyId], references: [id], onDelete: Cascade)
-  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@unique([policyId, userId])
-}
-
-model Audit {
-  id            Int         @id @default(autoincrement())
-  title         String
-  auditType     AuditType   @default(INTERNAL)
-  status        AuditStatus @default(PLANNED)
-  findings      String?
-  scheduledDate DateTime?
-  completedAt   DateTime?
-  createdById   Int
-  createdBy     User        @relation(fields: [createdById], references: [id])
-  createdAt     DateTime    @default(now())
-  updatedAt     DateTime    @updatedAt
-}
-
-model ComplianceIssue {
-  id            Int               @id @default(autoincrement())
-  title         String
-  description   String
-  severity      IssueSeverity     @default(MEDIUM)
-  status        ComplianceStatus  @default(OPEN)
-  reportedById  Int
-  reportedBy    User              @relation(fields: [reportedById], references: [id])
-  dueDate       DateTime?
-  resolvedAt    DateTime?
-  createdAt     DateTime          @default(now())
-  updatedAt     DateTime          @updatedAt
-=======
 model Department {
   id          Int      @id @default(autoincrement())
   name        String   @unique
@@ -133,13 +62,13 @@ model Department {
 }
 
 model User {
-  id           Int      @id @default(autoincrement())
-  name         String
-  email        String   @unique
-  password     String
-  role         Role     @default(EMPLOYEE)
-  isActive     Boolean  @default(true)
-  departmentId Int?
+  id                    Int                     @id @default(autoincrement())
+  name                  String
+  email                 String                  @unique
+  password              String
+  role                  Role                    @default(EMPLOYEE)
+  isActive              Boolean                 @default(true)
+  departmentId          Int?
 
   department Department? @relation(fields: [departmentId], references: [id], onDelete: SetNull)
 
@@ -150,8 +79,68 @@ model User {
   createdWasteRecords       WasteRecord[]
   createdEnergyConsumptions EnergyConsumption[]
 
+  policies              Policy[]
+  policyAcknowledgements PolicyAcknowledgement[]
+  audits                Audit[]
+  complianceIssues      ComplianceIssue[]
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+}
+
+model Policy {
+  id            Int              @id @default(autoincrement())
+  title         String
+  version       String
+  content       String
+  status        PolicyStatus     @default(DRAFT)
+  effectiveDate DateTime?
+  createdById   Int
+  createdBy     User             @relation(fields: [createdById], references: [id])
+  createdAt     DateTime         @default(now())
+  updatedAt     DateTime         @updatedAt
+
+  acknowledgements PolicyAcknowledgement[]
+}
+
+model PolicyAcknowledgement {
+  id              Int      @id @default(autoincrement())
+  policyId        Int
+  userId          Int
+  acknowledgedAt  DateTime @default(now())
+
+  policy Policy @relation(fields: [policyId], references: [id], onDelete: Cascade)
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([policyId, userId])
+}
+
+model Audit {
+  id            Int         @id @default(autoincrement())
+  title         String
+  auditType     AuditType   @default(INTERNAL)
+  status        AuditStatus @default(PLANNED)
+  findings      String?
+  scheduledDate DateTime?
+  completedAt   DateTime?
+  createdById   Int
+  createdBy     User        @relation(fields: [createdById], references: [id])
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+}
+
+model ComplianceIssue {
+  id           Int              @id @default(autoincrement())
+  title        String
+  description  String
+  severity     IssueSeverity    @default(MEDIUM)
+  status       ComplianceStatus @default(OPEN)
+  reportedById Int
+  reportedBy   User             @relation(fields: [reportedById], references: [id])
+  dueDate      DateTime?
+  resolvedAt   DateTime?
+  createdAt    DateTime         @default(now())
+  updatedAt    DateTime         @updatedAt
 }
 
 model EmissionCategory {
@@ -177,20 +166,20 @@ model EmissionCategory {
 }
 
 model EmissionFactor {
-  id                 Int      @id @default(autoincrement())
-  name               String
-  code               String   @unique
-  description        String?
-  activityType       String
-  unit               String
-  factorValue        Decimal  @db.Decimal(18, 6)
-  factorUnit         String
-  source             String?
-  isActive           Boolean  @default(true)
+  id                Int      @id @default(autoincrement())
+  name              String
+  code              String   @unique
+  description       String?
+  activityType      String
+  unit              String
+  factorValue       Decimal  @db.Decimal(18, 6)
+  factorUnit        String
+  source            String?
+  isActive          Boolean  @default(true)
 
-  emissionCategoryId  Int
-  departmentId        Int
-  createdById         Int?
+  emissionCategoryId Int
+  departmentId       Int
+  createdById        Int?
 
   emissionCategory EmissionCategory @relation(fields: [emissionCategoryId], references: [id], onDelete: Restrict)
   department       Department       @relation(fields: [departmentId], references: [id], onDelete: Restrict)
@@ -206,21 +195,21 @@ model EmissionFactor {
 }
 
 model CarbonEmission {
-  id                 Int      @id @default(autoincrement())
-  title              String
-  activityName       String
-  activityValue      Decimal  @db.Decimal(18, 6)
-  activityUnit       String
-  emissionAmount     Decimal  @db.Decimal(18, 6)
-  scope              String?
-  emissionDate       DateTime
-  notes              String?
-  source             String?
+  id             Int      @id @default(autoincrement())
+  title          String
+  activityName   String
+  activityValue  Decimal  @db.Decimal(18, 6)
+  activityUnit   String
+  emissionAmount Decimal  @db.Decimal(18, 6)
+  scope          String?
+  emissionDate   DateTime
+  notes          String?
+  source         String?
 
-  emissionCategoryId  Int
-  emissionFactorId    Int?
-  departmentId        Int
-  createdById         Int?
+  emissionCategoryId Int
+  emissionFactorId   Int?
+  departmentId       Int
+  createdById        Int?
 
   emissionCategory EmissionCategory @relation(fields: [emissionCategoryId], references: [id], onDelete: Restrict)
   emissionFactor   EmissionFactor?  @relation(fields: [emissionFactorId], references: [id], onDelete: SetNull)
@@ -309,5 +298,4 @@ model EnergyConsumption {
 
   @@index([departmentId])
   @@index([createdById])
->>>>>>> main
 }

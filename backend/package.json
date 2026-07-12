@@ -12,12 +12,8 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
-<<<<<<< HEAD
     "@prisma/adapter-pg": "^7.8.0",
     "@prisma/client": "^7.8.0",
-=======
-    "@prisma/client": "^6.19.3",
->>>>>>> main
     "bcrypt": "^6.0.0",
     "cookie-parser": "^1.4.7",
     "cors": "^2.8.6",
@@ -26,11 +22,8 @@
     "jsonwebtoken": "^9.0.3",
     "morgan": "^1.11.0",
     "multer": "^2.2.0",
-<<<<<<< HEAD
     "pg": "^8.22.0",
-=======
-    "prisma": "^6.19.3",
->>>>>>> main
+    "prisma": "^7.8.0",
     "zod": "^4.4.3"
   },
   "devDependencies": {
