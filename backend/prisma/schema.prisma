@@ -1,13 +1,11 @@
 // Prisma Schema
 
 generator client {
-  provider = "prisma-client"
-  output   = "../generated/prisma"
+  provider = "prisma-client-js"
 }
 
 datasource db {
   provider = "postgresql"
-  url      = env("DATABASE_URL")
 }
 
 enum Role {
@@ -16,14 +14,103 @@ enum Role {
   EMPLOYEE
 }
 
-model User {
-  id        Int      @id @default(autoincrement())
-  name      String
-  email     String   @unique
-  password  String
-  role      Role     @default(EMPLOYEE)
-  isActive  Boolean  @default(true)
+enum PolicyStatus {
+  DRAFT
+  ACTIVE
+  ARCHIVED
+}
 
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+enum AuditType {
+  INTERNAL
+  EXTERNAL
+}
+
+enum AuditStatus {
+  PLANNED
+  IN_PROGRESS
+  COMPLETED
+}
+
+enum IssueSeverity {
+  LOW
+  MEDIUM
+  HIGH
+  CRITICAL
+}
+
+enum ComplianceStatus {
+  OPEN
+  IN_REVIEW
+  RESOLVED
+}
+
+model User {
+  id                    Int                     @id @default(autoincrement())
+  name                  String
+  email                 String                  @unique
+  password              String
+  role                  Role                    @default(EMPLOYEE)
+  isActive              Boolean                 @default(true)
+  createdAt             DateTime                @default(now())
+  updatedAt             DateTime                @updatedAt
+
+  policies              Policy[]
+  policyAcknowledgements PolicyAcknowledgement[]
+  audits                Audit[]
+  complianceIssues      ComplianceIssue[]
+}
+
+model Policy {
+  id              Int                     @id @default(autoincrement())
+  title           String
+  version         String
+  content         String
+  status          PolicyStatus            @default(DRAFT)
+  effectiveDate   DateTime?
+  createdById     Int
+  createdBy       User                    @relation(fields: [createdById], references: [id])
+  createdAt       DateTime                @default(now())
+  updatedAt       DateTime                @updatedAt
+
+  acknowledgements PolicyAcknowledgement[]
+}
+
+model PolicyAcknowledgement {
+  id            Int      @id @default(autoincrement())
+  policyId      Int
+  userId        Int
+  acknowledgedAt DateTime @default(now())
+
+  policy        Policy   @relation(fields: [policyId], references: [id], onDelete: Cascade)
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([policyId, userId])
+}
+
+model Audit {
+  id            Int         @id @default(autoincrement())
+  title         String
+  auditType     AuditType   @default(INTERNAL)
+  status        AuditStatus @default(PLANNED)
+  findings      String?
+  scheduledDate DateTime?
+  completedAt   DateTime?
+  createdById   Int
+  createdBy     User        @relation(fields: [createdById], references: [id])
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+}
+
+model ComplianceIssue {
+  id            Int               @id @default(autoincrement())
+  title         String
+  description   String
+  severity      IssueSeverity     @default(MEDIUM)
+  status        ComplianceStatus  @default(OPEN)
+  reportedById  Int
+  reportedBy    User              @relation(fields: [reportedById], references: [id])
+  dueDate       DateTime?
+  resolvedAt    DateTime?
+  createdAt     DateTime          @default(now())
+  updatedAt     DateTime          @updatedAt
 }
