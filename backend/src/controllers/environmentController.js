@@ -1,6 +1,18 @@
-import { matchedData } from "express-validator";
 import asyncHandler from "../utils/asyncHandler.js";
 import { environmentService } from "../services/environmentService.js";
+import {
+  idParamSchema,
+  queryFilterSchema,
+  carbonEmissionCreateSchema,
+  carbonEmissionUpdateSchema,
+  energyConsumptionCreateSchema,
+  energyConsumptionUpdateSchema,
+  wasteRecordCreateSchema,
+  wasteRecordUpdateSchema,
+  environmentalGoalCreateSchema,
+  environmentalGoalUpdateSchema,
+  environmentalGoalProgressSchema,
+} from "../validations/environmentValidation.js";
 
 const sendSuccess = (res, message, data = null, meta = null, statusCode = 200) =>
   res.status(statusCode).json({
@@ -10,92 +22,78 @@ const sendSuccess = (res, message, data = null, meta = null, statusCode = 200) =
     ...(meta !== null ? { meta } : {}),
   });
 
-export const carbonEmissionController = {
+const createCrudController = (entityKey, label, createSchema, updateSchema) => ({
   list: asyncHandler(async (req, res) => {
-    const query = matchedData(req, { locations: ["query"] });
-    const result = await environmentService.listCarbonEmissions(query);
+    const query = queryFilterSchema.parse(req.query);
+    const result = await environmentService.listEntities(entityKey, query);
 
-    return sendSuccess(res, "Carbon emission records fetched successfully", result.items, result.meta);
+    return sendSuccess(res, `${label} list fetched successfully`, result.items, result.meta);
   }),
 
   getById: asyncHandler(async (req, res) => {
-    const { id } = matchedData(req, { locations: ["params"] });
-    const record = await environmentService.getCarbonEmissionById(id);
+    const { id } = idParamSchema.parse(req.params);
+    const record = await environmentService.getEntityById(entityKey, id);
 
-    return sendSuccess(res, "Carbon emission record fetched successfully", record);
+    return sendSuccess(res, `${label} fetched successfully`, record);
   }),
 
   create: asyncHandler(async (req, res) => {
-    const payload = matchedData(req, { locations: ["body"] });
-    const record = await environmentService.createCarbonEmission(payload);
+    const payload = createSchema.parse(req.body);
+    const record = await environmentService.createEntity(entityKey, payload);
 
-    return sendSuccess(res, "Carbon emission record created successfully", record, null, 201);
+    return sendSuccess(res, `${label} created successfully`, record, null, 201);
   }),
 
   update: asyncHandler(async (req, res) => {
-    const { id } = matchedData(req, { locations: ["params"] });
-    const payload = matchedData(req, { locations: ["body"] });
-    const record = await environmentService.updateCarbonEmission(id, payload);
+    const { id } = idParamSchema.parse(req.params);
+    const payload = updateSchema.parse(req.body);
+    const record = await environmentService.updateEntity(entityKey, id, payload);
 
-    return sendSuccess(res, "Carbon emission record updated successfully", record);
+    return sendSuccess(res, `${label} updated successfully`, record);
   }),
 
   remove: asyncHandler(async (req, res) => {
-    const { id } = matchedData(req, { locations: ["params"] });
-    await environmentService.deleteCarbonEmission(id);
+    const { id } = idParamSchema.parse(req.params);
+    await environmentService.deleteEntity(entityKey, id);
 
-    return sendSuccess(res, "Carbon emission record deleted successfully");
+    return sendSuccess(res, `${label} deleted successfully`);
   }),
+});
 
-  report: asyncHandler(async (req, res) => {
-    const query = matchedData(req, { locations: ["query"] });
-    const report = await environmentService.getCarbonEmissionReport(query);
+export const carbonEmissionController = createCrudController(
+  "carbonEmissions",
+  "Carbon emission",
+  carbonEmissionCreateSchema,
+  carbonEmissionUpdateSchema
+);
 
-    return sendSuccess(res, "Carbon emission report fetched successfully", report);
-  }),
-};
+export const energyConsumptionController = createCrudController(
+  "energyConsumptions",
+  "Energy consumption",
+  energyConsumptionCreateSchema,
+  energyConsumptionUpdateSchema
+);
 
-export const energyConsumptionController = {
-  list: asyncHandler(async (req, res) => {
-    const query = matchedData(req, { locations: ["query"] });
-    const result = await environmentService.listEnergyConsumptions(query);
+export const wasteRecordController = createCrudController(
+  "wasteRecords",
+  "Waste record",
+  wasteRecordCreateSchema,
+  wasteRecordUpdateSchema
+);
 
-    return sendSuccess(res, "Energy consumption records fetched successfully", result.items, result.meta);
-  }),
+export const environmentalGoalController = {
+  ...createCrudController(
+    "environmentalGoals",
+    "Environmental goal",
+    environmentalGoalCreateSchema,
+    environmentalGoalUpdateSchema
+  ),
 
-  getById: asyncHandler(async (req, res) => {
-    const { id } = matchedData(req, { locations: ["params"] });
-    const record = await environmentService.getEnergyConsumptionById(id);
+  progress: asyncHandler(async (req, res) => {
+    const { id } = idParamSchema.parse(req.params);
+    const payload = environmentalGoalProgressSchema.parse(req.body);
+    const record = await environmentService.updateGoalProgress(id, payload);
 
-    return sendSuccess(res, "Energy consumption record fetched successfully", record);
-  }),
-
-  create: asyncHandler(async (req, res) => {
-    const payload = matchedData(req, { locations: ["body"] });
-    const record = await environmentService.createEnergyConsumption(payload);
-
-    return sendSuccess(res, "Energy consumption record created successfully", record, null, 201);
-  }),
-
-  update: asyncHandler(async (req, res) => {
-    const { id } = matchedData(req, { locations: ["params"] });
-    const payload = matchedData(req, { locations: ["body"] });
-    const record = await environmentService.updateEnergyConsumption(id, payload);
-
-    return sendSuccess(res, "Energy consumption record updated successfully", record);
-  }),
-
-  remove: asyncHandler(async (req, res) => {
-    const { id } = matchedData(req, { locations: ["params"] });
-    await environmentService.deleteEnergyConsumption(id);
-
-    return sendSuccess(res, "Energy consumption record deleted successfully");
-  }),
-
-  report: asyncHandler(async (req, res) => {
-    const query = matchedData(req, { locations: ["query"] });
-    const report = await environmentService.getEnergyConsumptionReport(query);
-
-    return sendSuccess(res, "Energy consumption report fetched successfully", report);
+    return sendSuccess(res, "Environmental goal progress updated successfully", record);
   }),
 };

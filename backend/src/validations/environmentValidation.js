@@ -1,171 +1,252 @@
-import { body, param, query, validationResult } from "express-validator";
+import { z } from "zod";
 
-const respondValidationErrors = (req, res, next) => {
-  const result = validationResult(req);
+const idValue = z.string().trim().min(1);
+const decimalValue = z.coerce.number().finite();
+const baseText = z.string().trim().min(1);
 
-  if (!result.isEmpty()) {
-    return res.status(400).json({
-      success: false,
-      message: "Validation failed",
-      errors: result.array(),
-    });
-  }
+const updateObject = (schema) =>
+  schema.partial().refine((value) => Object.keys(value).length > 0, {
+    message: "At least one field must be provided",
+  });
 
-  return next();
-};
+export const idParamSchema = z.object({
+  id: idValue,
+});
 
-const optionalIntegerId = (field) => body(field).optional({ nullable: true, checkFalsy: true }).isInt({ gt: 0 }).toInt();
+export const queryFilterSchema = z.object({
+  page: z.coerce.number().int().min(1).default(1),
+  limit: z.coerce.number().int().min(1).max(100).default(20),
+  search: z.string().trim().optional(),
+  status: z.string().trim().optional(),
+  departmentId: idValue.optional(),
+  from: z.coerce.date().optional(),
+  to: z.coerce.date().optional(),
+  sortBy: z.string().trim().optional(),
+  sortOrder: z.enum(["asc", "desc"]).default("desc"),
+});
 
-const requiredIntegerId = (field) => body(field).isInt({ gt: 0 }).toInt();
+export const emissionCategoryCreateSchema = z.object({
+  name: baseText,
+  code: baseText,
+  description: z.string().trim().optional(),
+  departmentId: idValue,
+  createdById: idValue.optional(),
+});
 
-const requiredDecimal = (field) => body(field).isFloat().toFloat();
+export const emissionCategoryUpdateSchema = updateObject(emissionCategoryCreateSchema);
 
-const optionalDecimal = (field) => body(field).optional({ nullable: true, checkFalsy: true }).isFloat().toFloat();
+export const emissionFactorCreateSchema = z.object({
+  name: baseText,
+  code: baseText,
+  description: z.string().trim().optional(),
+  activityType: baseText,
+  unit: baseText,
+  factorValue: decimalValue,
+  factorUnit: baseText,
+  source: z.string().trim().optional(),
+  emissionCategoryId: idValue,
+  departmentId: idValue,
+  createdById: idValue.optional(),
+});
 
-const requiredText = (field, min = 1) => body(field).isString().trim().isLength({ min });
+export const emissionFactorUpdateSchema = updateObject(emissionFactorCreateSchema);
 
-const optionalText = (field) => body(field).optional({ nullable: true, checkFalsy: true }).isString().trim();
+export const carbonEmissionCreateSchema = z.object({
+  title: baseText,
+  activityName: baseText,
+  activityValue: decimalValue,
+  activityUnit: baseText,
+  emissionAmount: decimalValue,
+  scope: z.string().trim().optional(),
+  emissionDate: z.coerce.date(),
+  notes: z.string().trim().optional(),
+  source: z.string().trim().optional(),
+  emissionCategoryId: idValue,
+  emissionFactorId: idValue.optional(),
+  departmentId: idValue,
+  createdById: idValue.optional(),
+});
 
-const parsePositiveIntQuery = (field, defaultValue, maxValue = 100) =>
-  query(field).optional().isInt({ gt: 0, max: maxValue }).toInt().default(defaultValue);
+export const carbonEmissionUpdateSchema = updateObject(carbonEmissionCreateSchema);
 
-const parseSortDirection = query("sortOrder").optional().isIn(["asc", "desc"]).toLowerCase().default("desc");
+export const environmentalGoalCreateSchema = z.object({
+  title: baseText,
+  description: z.string().trim().optional(),
+  goalType: z.string().trim().optional(),
+  targetValue: decimalValue,
+  currentValue: decimalValue.optional().default(0),
+  baselineValue: decimalValue.optional(),
+  unit: baseText,
+  status: z.string().trim().optional().default("ACTIVE"),
+  startDate: z.coerce.date().optional(),
+  targetDate: z.coerce.date(),
+  achievedAt: z.coerce.date().optional(),
+  departmentId: idValue,
+  createdById: idValue.optional(),
+});
 
-const buildListValidators = (allowedSortFields) => [
-  query("page").optional().isInt({ gt: 0 }).toInt().default(1),
-  query("limit").optional().isInt({ gt: 0, max: 100 }).toInt().default(20),
-  query("search").optional().isString().trim(),
-  query("departmentId").optional().isInt({ gt: 0 }).toInt(),
-  query("createdById").optional().isInt({ gt: 0 }).toInt(),
-  query("sortBy").optional().isIn(allowedSortFields).default("createdAt"),
-  parseSortDirection,
-  respondValidationErrors,
-];
+export const environmentalGoalUpdateSchema = updateObject(environmentalGoalCreateSchema);
 
-const carbonEmissionCreateValidators = [
-  requiredText("title"),
-  requiredText("activityName"),
-  requiredDecimal("activityValue"),
-  requiredText("activityUnit"),
-  requiredDecimal("emissionAmount"),
-  optionalText("scope"),
-  body("emissionDate").isISO8601().toDate(),
-  optionalText("notes"),
-  optionalText("source"),
-  requiredIntegerId("emissionCategoryId"),
-  body("emissionFactorId").optional({ nullable: true, checkFalsy: true }).isInt({ gt: 0 }).toInt(),
-  requiredIntegerId("departmentId"),
-  optionalIntegerId("createdById"),
-  respondValidationErrors,
-];
+export const environmentalGoalProgressSchema = z.object({
+  currentValue: decimalValue,
+  status: z.string().trim().optional(),
+});
 
-const carbonEmissionUpdateValidators = [
-  body().custom((value) => typeof value === "object" && value !== null && Object.keys(value).length > 0),
-  body("title").optional().isString().trim().isLength({ min: 1 }),
-  body("activityName").optional().isString().trim().isLength({ min: 1 }),
-  body("activityValue").optional().isFloat().toFloat(),
-  body("activityUnit").optional().isString().trim().isLength({ min: 1 }),
-  body("emissionAmount").optional().isFloat().toFloat(),
-  optionalText("scope"),
-  body("emissionDate").optional().isISO8601().toDate(),
-  optionalText("notes"),
-  optionalText("source"),
-  body("emissionCategoryId").optional().isInt({ gt: 0 }).toInt(),
-  body("emissionFactorId").optional({ nullable: true, checkFalsy: true }).isInt({ gt: 0 }).toInt(),
-  body("departmentId").optional().isInt({ gt: 0 }).toInt(),
-  optionalIntegerId("createdById"),
-  respondValidationErrors,
-];
+export const wasteRecordCreateSchema = z.object({
+  wasteType: baseText,
+  quantity: decimalValue,
+  unit: baseText,
+  disposalMethod: baseText,
+  hazardous: z.coerce.boolean().optional().default(false),
+  recycled: z.coerce.boolean().optional().default(false),
+  recordDate: z.coerce.date().optional().default(() => new Date()),
+  notes: z.string().trim().optional(),
+  departmentId: idValue,
+  createdById: idValue.optional(),
+});
 
-const energyConsumptionCreateValidators = [
-  requiredText("sourceType"),
-  requiredDecimal("consumption"),
-  requiredText("unit"),
-  body("periodStart").isISO8601().toDate(),
-  body("periodEnd").isISO8601().toDate(),
-  optionalDecimal("cost"),
-  optionalDecimal("carbonEmission"),
-  optionalText("notes"),
-  requiredIntegerId("departmentId"),
-  optionalIntegerId("createdById"),
-  body("periodEnd").custom((value, { req }) => {
-    if (req.body.periodStart && new Date(value) < new Date(req.body.periodStart)) {
-      throw new Error("periodEnd must be greater than or equal to periodStart");
-    }
+export const wasteRecordUpdateSchema = updateObject(wasteRecordCreateSchema);
 
-    return true;
-  }),
-  respondValidationErrors,
-];
+export const energyConsumptionCreateSchema = z.object({
+  sourceType: baseText,
+  consumption: decimalValue,
+  unit: baseText,
+  periodStart: z.coerce.date(),
+  periodEnd: z.coerce.date(),
+  cost: decimalValue.optional(),
+  carbonEmission: decimalValue.optional(),
+  notes: z.string().trim().optional(),
+  departmentId: idValue,
+  createdById: idValue.optional(),
+});
 
-const energyConsumptionUpdateValidators = [
-  body().custom((value) => typeof value === "object" && value !== null && Object.keys(value).length > 0),
-  body("sourceType").optional().isString().trim().isLength({ min: 1 }),
-  body("consumption").optional().isFloat().toFloat(),
-  body("unit").optional().isString().trim().isLength({ min: 1 }),
-  body("periodStart").optional().isISO8601().toDate(),
-  body("periodEnd").optional().isISO8601().toDate(),
-  optionalDecimal("cost"),
-  optionalDecimal("carbonEmission"),
-  optionalText("notes"),
-  body("departmentId").optional().isInt({ gt: 0 }).toInt(),
-  optionalIntegerId("createdById"),
-  body("periodEnd").optional().custom((value, { req }) => {
-    if (req.body.periodStart && new Date(value) < new Date(req.body.periodStart)) {
-      throw new Error("periodEnd must be greater than or equal to periodStart");
-    }
+export const energyConsumptionUpdateSchema = updateObject(energyConsumptionCreateSchema);
 
-    return true;
-  }),
-  respondValidationErrors,
-];
+import { z } from "zod";
 
-export const idParamValidators = [param("id").isInt({ gt: 0 }).toInt(), respondValidationErrors];
+const decimalValue = z.coerce.number().finite();
+const baseText = z.string().trim().min(1);
+const idValue = z.string().trim().min(1);
 
-export const carbonEmissionListValidators = buildListValidators([
-  "id",
-  "title",
-  "activityName",
-  "scope",
-  "emissionDate",
-  "createdAt",
-  "departmentId",
-  "createdById",
-  "emissionCategoryId",
-  "emissionFactorId",
-  "emissionAmount",
-]);
+const updateObject = (schema) =>
+  schema.partial().refine((value) => Object.keys(value).length > 0, {
+    message: "At least one field must be provided",
+  });
 
-export const carbonEmissionCreateValidation = carbonEmissionCreateValidators;
-export const carbonEmissionUpdateValidation = carbonEmissionUpdateValidators;
+export const idParamSchema = z.object({
+  id: idValue,
+});
 
-export const carbonEmissionReportValidators = [
-  query("departmentId").optional().isInt({ gt: 0 }).toInt(),
-  query("from").optional().isISO8601().toDate(),
-  query("to").optional().isISO8601().toDate(),
-  respondValidationErrors,
-];
+export const paginationSchema = z.object({
+  page: z.coerce.number().int().min(1).default(1),
+  limit: z.coerce.number().int().min(1).max(100).default(20),
+});
 
-export const energyConsumptionListValidators = buildListValidators([
-  "id",
-  "sourceType",
-  "unit",
-  "periodStart",
-  "periodEnd",
-  "createdAt",
-  "departmentId",
-  "createdById",
-  "consumption",
-  "cost",
-  "carbonEmission",
-]);
+export const queryFilterSchema = z.object({
+  page: z.coerce.number().int().min(1).default(1),
+  limit: z.coerce.number().int().min(1).max(100).default(20),
+  search: z.string().trim().optional(),
+  status: z.string().trim().optional(),
+  departmentId: idValue.optional(),
+  from: z.coerce.date().optional(),
+  to: z.coerce.date().optional(),
+  sortBy: z.string().trim().optional(),
+  sortOrder: z.enum(["asc", "desc"]).default("desc"),
+});
 
-export const energyConsumptionCreateValidation = energyConsumptionCreateValidators;
-export const energyConsumptionUpdateValidation = energyConsumptionUpdateValidators;
+export const emissionCategoryCreateSchema = z.object({
+  name: baseText,
+  code: baseText,
+  description: z.string().trim().optional(),
+  departmentId: idValue,
+  createdById: idValue.optional(),
+});
 
-export const energyConsumptionReportValidators = [
-  query("departmentId").optional().isInt({ gt: 0 }).toInt(),
-  query("from").optional().isISO8601().toDate(),
-  query("to").optional().isISO8601().toDate(),
-  respondValidationErrors,
-];
+export const emissionCategoryUpdateSchema = updateObject(emissionCategoryCreateSchema);
+
+export const emissionFactorCreateSchema = z.object({
+  name: baseText,
+  code: baseText,
+  description: z.string().trim().optional(),
+  activityType: baseText,
+  unit: baseText,
+  factorValue: decimalValue,
+  factorUnit: baseText,
+  source: z.string().trim().optional(),
+  emissionCategoryId: idValue,
+  departmentId: idValue,
+  createdById: idValue.optional(),
+});
+
+export const emissionFactorUpdateSchema = updateObject(emissionFactorCreateSchema);
+
+export const carbonEmissionCreateSchema = z.object({
+  title: baseText,
+  activityName: baseText,
+  activityValue: decimalValue,
+  activityUnit: baseText,
+  emissionAmount: decimalValue,
+  scope: z.string().trim().optional(),
+  emissionDate: z.coerce.date(),
+  notes: z.string().trim().optional(),
+  source: z.string().trim().optional(),
+  emissionCategoryId: idValue,
+  emissionFactorId: idValue.optional(),
+  departmentId: idValue,
+  createdById: idValue.optional(),
+});
+
+export const carbonEmissionUpdateSchema = updateObject(carbonEmissionCreateSchema);
+
+export const environmentalGoalCreateSchema = z.object({
+  title: baseText,
+  description: z.string().trim().optional(),
+  goalType: z.string().trim().optional(),
+  targetValue: decimalValue,
+  currentValue: decimalValue.optional().default(0),
+  baselineValue: decimalValue.optional(),
+  unit: baseText,
+  status: z.string().trim().optional().default("ACTIVE"),
+  startDate: z.coerce.date().optional(),
+  targetDate: z.coerce.date(),
+  achievedAt: z.coerce.date().optional(),
+  departmentId: idValue,
+  createdById: idValue.optional(),
+});
+
+export const environmentalGoalUpdateSchema = updateObject(environmentalGoalCreateSchema);
+
+export const environmentalGoalProgressSchema = z.object({
+  currentValue: decimalValue,
+  status: z.string().trim().optional(),
+});
+
+export const wasteRecordCreateSchema = z.object({
+  wasteType: baseText,
+  quantity: decimalValue,
+  unit: baseText,
+  disposalMethod: baseText,
+  hazardous: z.coerce.boolean().optional().default(false),
+  recycled: z.coerce.boolean().optional().default(false),
+  recordDate: z.coerce.date().optional().default(() => new Date()),
+  notes: z.string().trim().optional(),
+  departmentId: idValue,
+  createdById: idValue.optional(),
+});
+
+export const wasteRecordUpdateSchema = updateObject(wasteRecordCreateSchema);
+
+export const energyConsumptionCreateSchema = z.object({
+  sourceType: baseText,
+  consumption: decimalValue,
+  unit: baseText,
+  periodStart: z.coerce.date(),
+  periodEnd: z.coerce.date(),
+  cost: decimalValue.optional(),
+  carbonEmission: decimalValue.optional(),
+  notes: z.string().trim().optional(),
+  departmentId: idValue,
+  createdById: idValue.optional(),
+});
+
+export const energyConsumptionUpdateSchema = updateObject(energyConsumptionCreateSchema);

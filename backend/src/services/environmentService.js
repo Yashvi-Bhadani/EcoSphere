@@ -44,12 +44,35 @@ const validateRelations = async (data, fields) => {
 };
 
 const buildPagination = ({ page = 1, limit = 20 }) => {
-  const safePage = Math.max(1, Number(page));
-  const safeLimit = Math.min(100, Math.max(1, Number(limit)));
-
-  return {
-    page: safePage,
-    limit: safeLimit,
+    const includeMap = {
+      emissionCategories: {
+      department: { select: { id: true, name: true } },
+      createdBy: { select: { id: true, firstName: true, lastName: true, email: true, role: true } },
+      },
+      emissionFactors: {
+      department: { select: { id: true, name: true } },
+      createdBy: { select: { id: true, firstName: true, lastName: true, email: true, role: true } },
+      emissionCategory: { select: { id: true, name: true, code: true } },
+      },
+      carbonEmissions: {
+      department: { select: { id: true, name: true } },
+      createdBy: { select: { id: true, firstName: true, lastName: true, email: true, role: true } },
+      emissionCategory: { select: { id: true, name: true, code: true } },
+      emissionFactor: { select: { id: true, name: true, code: true } },
+      },
+      wasteRecords: {
+      department: { select: { id: true, name: true } },
+      createdBy: { select: { id: true, firstName: true, lastName: true, email: true, role: true } },
+      },
+      environmentalGoals: {
+      department: { select: { id: true, name: true } },
+      createdBy: { select: { id: true, firstName: true, lastName: true, email: true, role: true } },
+      },
+      energyConsumptions: {
+      department: { select: { id: true, name: true } },
+      createdBy: { select: { id: true, firstName: true, lastName: true, email: true, role: true } },
+      },
+    };
     skip: (safePage - 1) * safeLimit,
     take: safeLimit,
   };

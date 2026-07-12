@@ -2,49 +2,62 @@ import { Router } from "express";
 import {
   carbonEmissionController,
   energyConsumptionController,
+  wasteRecordController,
+  environmentalGoalController,
 } from "../controllers/environmentController.js";
-import {
-  carbonEmissionCreateValidation,
-  carbonEmissionUpdateValidation,
-  carbonEmissionListValidators,
-  carbonEmissionReportValidators,
-  energyConsumptionCreateValidation,
-  energyConsumptionUpdateValidation,
-  energyConsumptionListValidators,
-  energyConsumptionReportValidators,
-  idParamValidators,
-} from "../validations/environmentValidation.js";
+import { authMiddleware } from "../middleware/authMiddleware.js";
+import { roleMiddleware } from "../middleware/roleMiddleware.js";
 
 const router = Router();
+const readAccess = [authMiddleware, roleMiddleware("ADMIN", "EMPLOYEE")];
+const writeAccess = [authMiddleware, roleMiddleware("ADMIN")];
 
 router
   .route("/carbon-emissions")
-  .get(carbonEmissionListValidators, carbonEmissionController.list)
-  .post(carbonEmissionCreateValidation, carbonEmissionController.create);
+  .get(...readAccess, carbonEmissionController.list)
+  .post(...writeAccess, carbonEmissionController.create);
 
 router
   .route("/carbon-emissions/:id")
-  .get(idParamValidators, carbonEmissionController.getById)
-  .put(idParamValidators, carbonEmissionUpdateValidation, carbonEmissionController.update)
-  .delete(idParamValidators, carbonEmissionController.remove);
-
-router
-  .route("/carbon-emissions/reports")
-  .get(carbonEmissionReportValidators, carbonEmissionController.report);
+  .get(...readAccess, carbonEmissionController.getById)
+  .put(...writeAccess, carbonEmissionController.update)
+  .delete(...writeAccess, carbonEmissionController.remove);
 
 router
   .route("/energy-consumptions")
-  .get(energyConsumptionListValidators, energyConsumptionController.list)
-  .post(energyConsumptionCreateValidation, energyConsumptionController.create);
+  .get(...readAccess, energyConsumptionController.list)
+  .post(...writeAccess, energyConsumptionController.create);
 
 router
   .route("/energy-consumptions/:id")
-  .get(idParamValidators, energyConsumptionController.getById)
-  .put(idParamValidators, energyConsumptionUpdateValidation, energyConsumptionController.update)
-  .delete(idParamValidators, energyConsumptionController.remove);
+  .get(...readAccess, energyConsumptionController.getById)
+  .put(...writeAccess, energyConsumptionController.update)
+  .delete(...writeAccess, energyConsumptionController.remove);
 
 router
-  .route("/energy-consumptions/reports")
-  .get(energyConsumptionReportValidators, energyConsumptionController.report);
+  .route("/waste-records")
+  .get(...readAccess, wasteRecordController.list)
+  .post(...writeAccess, wasteRecordController.create);
+
+router
+  .route("/waste-records/:id")
+  .get(...readAccess, wasteRecordController.getById)
+  .put(...writeAccess, wasteRecordController.update)
+  .delete(...writeAccess, wasteRecordController.remove);
+
+router
+  .route("/environmental-goals")
+  .get(...readAccess, environmentalGoalController.list)
+  .post(...writeAccess, environmentalGoalController.create);
+
+router
+  .route("/environmental-goals/:id")
+  .get(...readAccess, environmentalGoalController.getById)
+  .put(...writeAccess, environmentalGoalController.update)
+  .delete(...writeAccess, environmentalGoalController.remove);
+
+router
+  .route("/environmental-goals/:id/progress")
+  .put(...writeAccess, environmentalGoalController.progress);
 
 export default router;
