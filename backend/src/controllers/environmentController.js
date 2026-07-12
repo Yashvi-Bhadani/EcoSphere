@@ -60,6 +60,14 @@ const createCrudController = (entityKey, label, createSchema, updateSchema) => (
   }),
 });
 
+const createStatsController = (serviceMethod, successMessage) =>
+  asyncHandler(async (req, res) => {
+    const query = queryFilterSchema.parse(req.query);
+    const data = await environmentService[serviceMethod](query);
+
+    return sendSuccess(res, successMessage, data);
+  });
+
 export const carbonEmissionController = createCrudController(
   "carbonEmissions",
   "Carbon emission",
@@ -96,4 +104,12 @@ export const environmentalGoalController = {
 
     return sendSuccess(res, "Environmental goal progress updated successfully", record);
   }),
+
+  dashboard: createStatsController("getDashboardSummary", "Environment dashboard fetched successfully"),
+
+  reports: createStatsController("getReports", "Environment reports fetched successfully"),
+
+  analytics: createStatsController("getDepartmentWiseStatistics", "Environment analytics fetched successfully"),
+
+  monthlyStats: createStatsController("getMonthlyStatistics", "Monthly environment statistics fetched successfully"),
 };

@@ -9,8 +9,16 @@ import { authMiddleware } from "../middleware/authMiddleware.js";
 import { roleMiddleware } from "../middleware/roleMiddleware.js";
 
 const router = Router();
-const readAccess = [authMiddleware, roleMiddleware("ADMIN", "EMPLOYEE")];
+const readAccess = [authMiddleware, roleMiddleware("ADMIN", "MANAGER", "EMPLOYEE")];
 const writeAccess = [authMiddleware, roleMiddleware("ADMIN")];
+
+router.route("/dashboard").get(...readAccess, environmentalGoalController.dashboard);
+
+router.route("/reports").get(...readAccess, environmentalGoalController.reports);
+
+router.route("/analytics").get(...readAccess, environmentalGoalController.analytics);
+
+router.route("/analytics/monthly").get(...readAccess, environmentalGoalController.monthlyStats);
 
 router
   .route("/carbon-emissions")
